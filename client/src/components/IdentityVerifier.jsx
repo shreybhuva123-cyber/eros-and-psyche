@@ -110,26 +110,34 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   };
 
   useEffect(() => {
+    if (stream && videoRef.current && (status === 'streaming' || status === 'scanning')) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.play().catch(e => console.error("Playback failed:", e));
+    }
+  }, [stream, status]);
+
+  useEffect(() => {
     return () => stopCamera();
-  }, [stream]);
+  }, []);
 
   return (
     <div className="w-full max-w-sm mx-auto space-y-4">
-      <div className="relative aspect-video rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-900 border-2 border-indigo-100 dark:border-slate-800 shadow-2xl flex items-center justify-center transition-all duration-300">
+      <div className="relative aspect-video rounded-3xl overflow-hidden bg-black border-2 border-indigo-500/30 dark:border-slate-800 shadow-2xl flex items-center justify-center transition-all duration-500">
         
         {/* VIDEO PREVIEW - Always visible if streaming/scanning */}
         {(status === 'streaming' || status === 'scanning') && (
-           <div className="relative w-full h-full">
+           <div className="absolute inset-0 w-full h-full bg-black">
                <video 
                   ref={videoRef} 
                   autoPlay 
                   playsInline 
                   muted 
+                  onLoadedMetadata={(e) => e.target.play()}
                   className="w-full h-full object-cover mirror"
                />
-               <div className="absolute inset-0 pointer-events-none border-[2rem] border-black/20 flex items-center justify-center">
+               <div className="absolute inset-0 pointer-events-none border-[1.5rem] md:border-[3rem] border-black/40 flex items-center justify-center">
                   <div className={clsx(
-                    "w-48 h-48 border-2 border-dashed rounded-full transition-colors duration-500",
+                    "w-32 h-32 md:w-48 md:h-48 border-2 border-dashed rounded-full transition-colors duration-500",
                     status === 'scanning' ? "border-cyan-400 animate-pulse" : "border-indigo-400/50 animate-pulse-slow"
                   )}></div>
                </div>
