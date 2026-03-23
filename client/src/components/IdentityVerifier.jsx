@@ -101,10 +101,16 @@ const IdentityVerifier = ({ gender, onVerify }) => {
 
             if (isMatch && confidence > 0.6) {
                 setTimeout(() => {
-                    setPhoto(dataUrl);
-                    setStatus('verified');
-                    onVerify(dataUrl);
-                    stopCamera();
+                    // Only finalize if we are still in scanning state
+                    setStatus(currentStatus => {
+                        if (currentStatus === 'scanning') {
+                             setPhoto(dataUrl);
+                             onVerify(dataUrl);
+                             stopCamera();
+                             return 'verified';
+                        }
+                        return currentStatus;
+                    });
                 }, 2000); // 2 second scan animation
             } else {
                 throw new Error(`Identity mismatch. System detected a different gender than ${gender}.`);
@@ -233,9 +239,9 @@ const IdentityVerifier = ({ gender, onVerify }) => {
                 key="scanning"
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
-                className="absolute inset-0 bg-transparent flex flex-col items-center justify-center text-white z-50 pointer-events-none"
+                className="absolute inset-0 bg-transparent flex flex-col items-center justify-center text-white z-50 transition-all duration-300"
              >
-                <div className="absolute inset-0 bg-indigo-900/10 backdrop-blur-[2px]"></div>
+                <div className="absolute inset-0 bg-indigo-900/40 backdrop-blur-[4px]"></div>
                 <motion.div 
                    animate={{ 
                       y: [-120, 120, -120],
@@ -243,12 +249,21 @@ const IdentityVerifier = ({ gender, onVerify }) => {
                    transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                    className="absolute left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,1)] z-50"
                 />
-                <div className="flex flex-col items-center gap-2 z-50">
+                <div className="flex flex-col items-center gap-2 z-50 pointer-events-none">
                    <h3 className="font-black text-xl tracking-[0.3em] uppercase text-cyan-400 drop-shadow-md">Scanning...</h3>
                    <div className="px-4 py-1 bg-black/40 backdrop-blur-md rounded-full border border-white/20">
                       <p className="text-[10px] font-mono uppercase tracking-widest leading-none">Classifying {gender}</p>
                    </div>
                 </div>
+                
+                {/* CANCEL BUTTON */}
+                <button 
+                  type="button"
+                  onClick={() => setStatus('streaming')}
+                  className="absolute bottom-6 px-6 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white border border-white/20 rounded-full text-[10px] font-black uppercase tracking-[2px] transition-all active:scale-95 z-50"
+                >
+                  Cancel Scan
+                </button>
              </motion.div>
           )}
 
