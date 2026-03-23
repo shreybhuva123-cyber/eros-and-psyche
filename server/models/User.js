@@ -25,7 +25,14 @@ const userSchema = new mongoose.Schema({
   },
   blockedUsers: [{
     type: String // userIds
-  }]
+  }],
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationPhoto: {
+    type: String // base64 photo
+  }
 }, {
   timestamps: true
 });

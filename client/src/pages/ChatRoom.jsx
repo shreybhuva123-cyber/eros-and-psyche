@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, XCircle, RotateCcw, AlertTriangle, ShieldAlert, X, Users, UserRound, Sparkles, Timer, MessageCircleHeart } from 'lucide-react';
+import { Send, XCircle, RotateCcw, AlertTriangle, ShieldAlert, X, Users, UserRound, Sparkles, Timer, MessageCircleHeart, BadgeCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ShreyMascot from '../components/ShreyMascot';
@@ -52,7 +52,7 @@ const ChatRoom = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [onlineCount, setOnlineCount] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(1800); // 30 minutes in seconds
   
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -88,7 +88,7 @@ const ChatRoom = () => {
           setTimeLeft((prev) => prev - 1);
        }, 1000);
     } else if (status !== 'matched') {
-       setTimeLeft(600);
+       setTimeLeft(1800);
     }
     return () => clearInterval(timer);
   }, [status, timeLeft]);
@@ -132,10 +132,11 @@ const ChatRoom = () => {
       if (animationTimeoutRef.current) clearTimeout(animationTimeoutRef.current);
       animationTimeoutRef.current = setTimeout(() => {
         setStatus('matched');
-        setTimeLeft(600);
-        setMessages([
+        setTimeLeft(1800);
+        setMessages((prev) => [
           { system: true, text: 'You are now connected. Say Hi!' },
-          { system: true, isIcebreaker: true, text: `🧊 Icebreaker: ${data.icebreaker}` }
+          { system: true, isIcebreaker: true, text: `🧊 Icebreaker: ${data.icebreaker}` },
+          ...prev
         ]);
       }, 3500);
     });
@@ -159,7 +160,7 @@ const ChatRoom = () => {
       setStatus('idle');
       setMessages([]);
       setPartnerDetails(null);
-      alert('Time is up! The 10-minute ephemeral session has ended. Rejoin the queue to meet someone new.');
+      alert('Time is up! The 30-minute ephemeral session has ended. Rejoin the queue to meet someone new.');
     });
 
     newSocket.on('partner_disconnected', () => {
@@ -213,9 +214,14 @@ const ChatRoom = () => {
 
   const handleReport = async () => {
     socket.emit('get_partner_id_for_report', async (data) => {
+       if (data && data.error) {
+         alert(data.error);
+         setShowReport(false);
+         return;
+       }
        if(data && data.reportedUserId) {
          try {
-           await fetch(`${apiUrl}/api/reports/report`, {
+           const res = await fetch(`${apiUrl}/api/reports/report`, {
              method: 'POST',
              headers: { 
                  'Content-Type': 'application/json',
@@ -223,10 +229,13 @@ const ChatRoom = () => {
              },
              body: JSON.stringify(data)
            });
+           if (!res.ok) throw new Error('Failed to submit report');
            alert('User reported successfully.');
            setShowReport(false);
            endChat();
-         } catch(e) {}
+         } catch(e) {
+           alert('Error submitting report: ' + e.message);
+         }
        }
     });
   };
@@ -243,30 +252,45 @@ const ChatRoom = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-slate-900 overflow-hidden font-sans relative text-slate-200">
+    <div className="flex flex-col h-screen w-full bg-slate-50 dark:bg-slate-900 overflow-hidden font-sans relative text-slate-900 dark:text-slate-200 transition-colors duration-300">
       <ShreyMascot isGlobal={true} />
       
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+      {/* User Profile Bar - Extra Request */}
+      <div className="h-10 bg-indigo-600 text-white flex items-center justify-center px-4 z-40 relative">
+         <div className="flex items-center gap-6 text-[0.75rem] font-bold tracking-widest uppercase">
+            <div className="flex items-center gap-2">
+               <UserRound size={14} className="opacity-70" />
+               <span className="flex items-center gap-1.5">ID: <span className="text-indigo-200">{user?.userId}</span> {user?.isVerified && <BadgeCheck size={14} className="text-white fill-indigo-400" />}</span>
+            </div>
+            <div className="w-px h-3 bg-white/20"></div>
+            <div className="flex items-center gap-2">
+               <ShieldAlert size={14} className="opacity-70" />
+               <span>Gender: <span className={user?.gender === 'Boy' ? 'text-blue-300' : 'text-pink-300'}>{user?.gender || 'Anonymous'}</span></span>
+            </div>
+         </div>
+      </div>
+
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 opacity-50 dark:opacity-100">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full mix-blend-screen filter blur-[120px] animate-pulse"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-pink-600/10 rounded-full mix-blend-screen filter blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
-      <div className="h-16 shrink-0 bg-slate-900/60 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between px-6 shadow-sm z-20">
-        <div className="font-extrabold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-pink-400 flex items-center gap-2">
-          <Sparkles className="text-pink-400" size={24} /> Eros & Psyche
+      <div className="h-16 shrink-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 shadow-sm z-20">
+        <div className="font-extrabold text-2xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-pink-500 flex items-center gap-2">
+          <Sparkles className="text-pink-500" size={24} /> Eros & Psyche
         </div>
         
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700/50">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-200 dark:border-slate-700/50">
              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
              </span>
-             <span className="text-sm font-semibold tracking-wide text-slate-300">
+             <span className="text-sm font-semibold tracking-wide text-slate-600 dark:text-slate-300">
                 {onlineCount} Online
              </span>
           </div>
-          <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 font-medium transition-colors text-sm flex items-center gap-1">
+          <button onClick={handleLogout} className="text-slate-500 dark:text-slate-400 hover:text-rose-500 font-medium transition-colors text-sm flex items-center gap-1">
             Logout
           </button>
         </div>
@@ -289,8 +313,8 @@ const ChatRoom = () => {
                  <Users className="text-white w-16 h-16 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" />
               </div>
               
-              <h2 className="text-4xl font-black mb-4 text-center text-white tracking-tight">Ready for a new connection?</h2>
-              <p className="text-slate-400 mb-10 text-center text-lg max-w-sm">Tap the button below to randomly pair with someone from the opposite gender instantly.</p>
+              <h2 className="text-4xl font-black mb-4 text-center text-slate-900 dark:text-white tracking-tight">Ready for a new connection?</h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-10 text-center text-lg max-w-sm">Tap the button below to randomly pair with someone from the opposite gender instantly.</p>
               
               <motion.button 
                 whileHover={{ scale: 1.05 }}
@@ -401,16 +425,24 @@ const ChatRoom = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="w-full max-w-5xl h-full flex flex-col bg-slate-900 md:rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-800 overflow-hidden relative z-30"
+              className="w-full max-w-5xl h-full flex flex-col bg-white dark:bg-slate-900 md:rounded-[2rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-200 dark:border-slate-800 overflow-hidden relative z-30 transition-colors duration-300"
             >
-              <div className="bg-slate-800/80 backdrop-blur pb-3 pt-4 px-6 border-b border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="bg-slate-50/80 dark:bg-slate-800/80 backdrop-blur pb-3 pt-4 px-6 border-b border-slate-200 dark:border-slate-700/50 flex flex-col md:flex-row items-center justify-between gap-4">
                  <div className="flex items-center justify-between w-full md:w-auto md:justify-start gap-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-purple-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-pink-500 to-purple-500 flex items-center justify-center shadow-lg shadow-pink-500/20 relative">
                          <UserRound className="text-white w-6 h-6" />
+                         {partnerDetails?.isVerified && (
+                            <div className="absolute -bottom-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-0.5 shadow-sm border border-slate-200 dark:border-slate-800">
+                               <BadgeCheck size={14} className="text-indigo-500 fill-white dark:fill-slate-900" />
+                            </div>
+                         )}
                       </div>
                       <div>
-                         <h3 className="font-bold text-slate-100 text-lg leading-tight">{partnerDetails?.partnerName || 'Unknown'}</h3>
+                          <div className="flex items-center gap-1.5">
+                             <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg leading-tight">{partnerDetails?.partnerName || 'Unknown'}</h3>
+                             {partnerDetails?.isVerified && <BadgeCheck size={18} className="text-indigo-500" />}
+                          </div>
                          <p className="text-xs text-emerald-400 font-medium tracking-wider flex items-center gap-1">
                             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block animate-pulse"></span> Identity Secured
                          </p>
@@ -420,9 +452,9 @@ const ChatRoom = () => {
                  
                  <div className="flex items-center gap-3 w-full justify-between md:w-auto md:justify-end">
                     {/* Ephemeral Timer Bar */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/50 rounded-full border border-slate-700/50">
-                       <Timer size={16} className={clsx("transition-colors", timeLeft < 60 ? "text-red-500 animate-pulse" : "text-indigo-400")} />
-                       <span className={clsx("font-mono font-bold tracking-wider", timeLeft < 60 ? "text-red-400" : "text-indigo-200")}>
+                     <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-900/50 rounded-full border border-slate-200 dark:border-slate-700/50">
+                       <Timer size={16} className={clsx("transition-colors", timeLeft < 60 ? "text-red-500 animate-pulse" : "text-indigo-500")} />
+                       <span className={clsx("font-mono font-bold tracking-wider", timeLeft < 60 ? "text-red-500" : "text-indigo-600 dark:text-indigo-200")}>
                          {formatTime(timeLeft)}
                        </span>
                     </div>
@@ -430,14 +462,14 @@ const ChatRoom = () => {
                     <div className="flex gap-2">
                       <button 
                         onClick={() => setShowReport(true)}
-                        className="p-2.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all"
+                        className="p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/20 transition-all shadow-sm"
                         title="Report & Block"
                       >
                         <ShieldAlert size={18} />
                       </button>
                       <button 
                         onClick={joinQueue}
-                        className="p-2.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400 hover:text-white hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-all"
+                        className="p-2.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-indigo-500/10 dark:hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-all shadow-sm"
                         title="Next Match"
                       >
                         <RotateCcw size={18} />
@@ -479,7 +511,7 @@ const ChatRoom = () => {
                           <p className="font-bold text-sm tracking-wide">{m.text}</p>
                         </motion.div>
                       ) : (
-                        <span className="px-5 py-2 bg-slate-800 text-slate-400 text-xs rounded-full font-semibold border border-slate-700/50 my-4 shadow-inner tracking-wide">
+                        <span className="px-5 py-2 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-xs rounded-full font-semibold border border-slate-200 dark:border-slate-700/50 my-4 shadow-inner tracking-wide">
                           {m.text}
                         </span>
                       )
@@ -490,7 +522,7 @@ const ChatRoom = () => {
                         className={clsx(
                           "max-w-[75%] px-5 py-3.5 rounded-3xl shadow-md relative group text-sm md:text-base",
                           m.isPartner 
-                            ? "bg-slate-800 text-slate-100 rounded-tl-sm border border-slate-700/50"
+                            ? "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-tl-sm border border-slate-200 dark:border-slate-700/50"
                             : "bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-tr-sm shadow-indigo-500/20"
                         )}
                       >
@@ -506,7 +538,7 @@ const ChatRoom = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex items-start"
                   >
-                    <div className="bg-slate-800 border border-slate-700/50 px-5 py-4 rounded-3xl rounded-tl-sm flex space-x-2 items-center shadow-md">
+                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 px-5 py-4 rounded-3xl rounded-tl-sm flex space-x-2 items-center shadow-md">
                        <span className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></span>
                        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></span>
                        <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
@@ -516,14 +548,14 @@ const ChatRoom = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="p-4 bg-slate-900/90 border-t border-slate-800 flex items-end gap-3 backdrop-blur-md">
-                <form onSubmit={handleSend} className="flex-1 flex items-center bg-slate-800 rounded-full border border-slate-700 shadow-inner px-2 py-1.5 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
+              <div className="p-4 bg-white/90 dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 flex items-end gap-3 backdrop-blur-md">
+                <form onSubmit={handleSend} className="flex-1 flex items-center bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 shadow-inner px-2 py-1.5 focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
                   <input 
                     type="text"
                     value={input}
                     onChange={handleTyping}
                     placeholder="Type a message..."
-                    className="flex-1 bg-transparent px-4 py-2 outline-none text-slate-100 placeholder:text-slate-500 text-base"
+                    className="flex-1 bg-transparent px-4 py-2 outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-base"
                   />
                   <button 
                     type="submit"

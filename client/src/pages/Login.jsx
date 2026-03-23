@@ -45,8 +45,8 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-slate-900 overflow-hidden relative">
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+    <div className="flex justify-center items-center min-h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden relative transition-colors duration-300">
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 opacity-40 dark:opacity-100">
         <div className="absolute top-20 left-10 w-[500px] h-[500px] bg-indigo-500/20 rounded-full mix-blend-screen filter blur-[100px] animate-pulse"></div>
         <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-pink-500/20 rounded-full mix-blend-screen filter blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
@@ -55,15 +55,15 @@ const Login = () => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="z-10 w-full max-w-md p-8 glass-card bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl m-4"
+        className="z-10 w-full max-w-md p-8 glass-card bg-white/60 dark:bg-slate-900/60 backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl m-4"
       >
         <div className="text-center mb-10">
           <div className="w-16 h-16 mx-auto bg-gradient-to-tr from-indigo-500 to-pink-500 rounded-2xl rotate-12 mb-[1rem] flex items-center justify-center shadow-lg hidden">
              <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg -rotate-12"></div>
           </div>
           <ShreyMascot focusedInput={focusedInput} />
-          <h1 className="text-3xl font-bold text-white mb-2 pt-2">Welcome Back</h1>
-          <p className="text-slate-400 text-sm">Enter your anonymous ID to connect</p>
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2 pt-2">Welcome Back</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Enter your anonymous ID to connect</p>
         </div>
 
         <AnimatePresence>

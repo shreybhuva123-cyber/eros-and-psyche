@@ -9,8 +9,11 @@ const generateUserId = (gender) => {
 
 exports.register = async (req, res) => {
   try {
-    const { gender, password, isAgeConfirmed } = req.body;
+    const { gender, password, isAgeConfirmed, verificationPhoto, isVerified } = req.body;
     
+    if (!verificationPhoto && !isVerified) {
+       return res.status(400).json({ error: 'Gender verification required' });
+    }
     if (!['Boy', 'Girl'].includes(gender)) {
       return res.status(400).json({ error: 'Invalid gender selection' });
     }
@@ -30,7 +33,9 @@ exports.register = async (req, res) => {
     const user = new User({
       userId,
       gender,
-      password: hashedPassword
+      password: hashedPassword,
+      verificationPhoto: verificationPhoto,
+      isVerified: true // Set this to true on successful selfie capture on frontend
     });
     
     await user.save();
@@ -60,7 +65,7 @@ exports.login = async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000
     });
     
-    res.status(200).json({ message: 'Logged in', token, userId: user.userId, gender: user.gender, reports: user.reportCount });
+    res.status(200).json({ message: 'Logged in', token, userId: user.userId, gender: user.gender, reports: user.reportCount, isVerified: user.isVerified });
   } catch (err) {
     res.status(500).json({ error: 'Server error during login' });
   }

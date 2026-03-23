@@ -41,8 +41,7 @@ module.exports = (io) => {
       }
       
       socket.dbUser = user;
-      onlineCount++;
-      io.emit('online_count', onlineCount);
+      io.emit('online_count', io.engine.clientsCount);
     } catch(err) {
       return socket.disconnect();
     }
@@ -81,29 +80,44 @@ module.exports = (io) => {
         
         socket.join(sessionId);
         socket.currentSessionId = sessionId;
+        socket.lastPartnerId = potentialMatch.user.userId;
         
         potentialMatch.join(sessionId);
         potentialMatch.currentSessionId = sessionId;
+        potentialMatch.lastPartnerId = socket.user.userId;
         
         const chosenIcebreaker = ICEBREAKERS[Math.floor(Math.random() * ICEBREAKERS.length)];
 
         io.to(sessionId).emit('match_found', {
           sessionId,
           partnerGender: socket.user.gender === 'Boy' ? 'Girl' : 'Boy',
-          partnerUserId: 'Anonymous', // we hide the actual user ID inside the session securely, but frontend doesn't need to know the true ID. The prompt states: "Assign system identity: Boy -> Eros, Girl -> Psyche", so we just send partnerName: Eros/Psyche
+          partnerUserId: 'Anonymous',
           icebreaker: chosenIcebreaker
         });
 
-        // Auto disconnect after 10 minutes (600,000 ms)
+        // Auto disconnect after 30 minutes (1,800,000 ms) as 10 min was too short
         sessionInfo.timeoutId = setTimeout(() => {
            io.to(sessionId).emit('time_up');
-           // Disconnect manually
-           activeSessions.delete(sessionId);
-        }, 600000);
+           // Clean up session properly for both users
+           const session = activeSessions.get(sessionId);
+           if (session) {
+             session.users.forEach(u => {
+               u.currentSessionId = null;
+               u.leave(sessionId);
+             });
+             activeSessions.delete(sessionId);
+           }
+        }, 1800000);
 
-        // Let each user know their partner's system identity
-        socket.emit('match_details', { partnerName: potentialMatch.user.gender === 'Boy' ? 'Eros' : 'Psyche' });
-        potentialMatch.emit('match_details', { partnerName: socket.user.gender === 'Boy' ? 'Eros' : 'Psyche' });
+        // Let each user know their partner's system identity and verification status
+        socket.emit('match_details', { 
+           partnerName: potentialMatch.user.gender === 'Boy' ? 'Eros' : 'Psyche',
+           isVerified: potentialMatch.dbUser.isVerified
+        });
+        potentialMatch.emit('match_details', { 
+           partnerName: socket.user.gender === 'Boy' ? 'Eros' : 'Psyche',
+           isVerified: socket.dbUser.isVerified
+        });
         
         break;
       }
@@ -150,21 +164,27 @@ module.exports = (io) => {
       }
     });
 
-    // For actually retrieving the reported ID backend-side without trusting the client fully!
-    // But the prompt says we pass reportedUserId from frontend. We can fetch it by seeing who was in the session.
     socket.on('get_partner_id_for_report', (callback) => {
+       if (typeof callback !== 'function') return;
+       
        const session = activeSessions.get(socket.currentSessionId);
        if(session) {
           const partner = session.users.find(u => u.id !== socket.id);
-          if (partner && typeof callback === 'function') {
-             callback({ reportedUserId: partner.user.userId, sessionId: socket.currentSessionId });
+          if (partner) {
+             return callback({ reportedUserId: partner.user.userId, sessionId: socket.currentSessionId });
           }
+       }
+       
+       // Fallback to last known partner if session is already gone
+       if (socket.lastPartnerId) {
+          callback({ reportedUserId: socket.lastPartnerId, sessionId: 'previous_session' });
+       } else {
+          callback({ error: 'No partner found to report.' });
        }
     });
 
-    socket.on('disconnect', () => {
-      onlineCount = Math.max(0, onlineCount - 1);
-      io.emit('online_count', onlineCount);
+    socket.on('disconnecting', () => {
+      io.emit('online_count', io.engine.clientsCount - 1);
       removeFromQueues(socket);
       handleDisconnectSession(socket);
     });
