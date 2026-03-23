@@ -13,18 +13,19 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   const loadModels = async () => {
     setStatus('loading');
     try {
-      // Switch to a more stable CDN for models
-      const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js-models@master/';
+      // Use the officially mirrored NPM package for models for maximum reliability
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
       
-      // Load models sequentially to avoid network bottlenecks
+      // Load only the essential models needed for gender detection
+      console.log("Loading AI Models...");
       await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
       await window.faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
       
+      console.log("AI Models Loaded Successfully");
       startCamera();
     } catch (err) {
-      console.error("Face-API Error:", err);
-      setError('AI Models failed to load. Please check your internet connection and try again.');
+      console.error("Critical Face-API Error:", err);
+      setError('AI System could not reach the secure identity models. Please refresh your browser or check your connection.');
       setStatus('idle');
     }
   };
