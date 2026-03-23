@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, RefreshCcw, CheckCircle, ShieldCheck, UserRound, CameraOff, Sparkles, ScanLine, BadgeCheck } from 'lucide-react';
+import clsx from 'clsx';
 
 const IdentityVerifier = ({ gender, onVerify }) => {
   const videoRef = useRef(null);
@@ -19,6 +20,7 @@ const IdentityVerifier = ({ gender, onVerify }) => {
       // Load only the essential models needed for gender detection
       console.log("Loading AI Models...");
       await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL); // Required for ageGenderNet sometimes
       await window.faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
       
       console.log("AI Models Loaded Successfully");

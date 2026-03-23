@@ -11,9 +11,7 @@ exports.register = async (req, res) => {
   try {
     const { gender, password, isAgeConfirmed, verificationPhoto, isVerified } = req.body;
     
-    if (!verificationPhoto && !isVerified) {
-       return res.status(400).json({ error: 'Gender verification required' });
-    }
+    // Verification is now optional. Users who skip don't get a verified badge.
     if (!['Boy', 'Girl'].includes(gender)) {
       return res.status(400).json({ error: 'Invalid gender selection' });
     }
@@ -35,7 +33,7 @@ exports.register = async (req, res) => {
       gender,
       password: hashedPassword,
       verificationPhoto: verificationPhoto,
-      isVerified: true // Set this to true on successful selfie capture on frontend
+      isVerified: !!verificationPhoto // Only verified if they provided a scan photo
     });
     
     await user.save();

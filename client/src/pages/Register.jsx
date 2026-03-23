@@ -132,10 +132,10 @@ const Register = () => {
             </label>
           </div>
           
-          <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-xl flex items-start space-x-3 mb-6">
+          <div className="bg-indigo-500/10 border border-indigo-500/30 p-4 rounded-2xl flex items-start space-x-3 mb-6 transition-colors duration-500">
              <ShieldAlert className="text-yellow-600 dark:text-yellow-500 mt-1 flex-shrink-0" size={18} />
              <p className="text-xs text-yellow-700 dark:text-yellow-200/80 leading-relaxed">
-               Identity check required to proceed as a <b>{gender}</b>. This helps us stop scammers.
+               Identity Verification (Optional). Scan for a <span className="text-cyan-400 font-bold italic underline decoration-cyan-400/30">Verified Badge</span>.
              </p>
           </div>
 
@@ -157,10 +157,10 @@ const Register = () => {
             whileHover={(isVerified || verificationSkipped) ? { scale: 1.02 } : {}}
             whileTap={(isVerified || verificationSkipped) ? { scale: 0.98 } : {}}
             type="submit"
-            disabled={loading || (!isVerified && !verificationSkipped)}
+            disabled={loading}
             className={clsx(
               "w-full py-4 rounded-2xl font-bold text-lg transition-all mt-8 shadow-lg",
-              (isVerified || verificationSkipped) 
+              !loading
                 ? "bg-gradient-to-r from-indigo-600 to-pink-600 text-white shadow-indigo-500/30 hover:shadow-indigo-500/50" 
                 : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-50"
             )}
