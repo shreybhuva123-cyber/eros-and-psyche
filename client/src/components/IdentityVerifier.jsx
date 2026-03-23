@@ -12,16 +12,28 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   const [photo, setPhoto] = useState(null);
 
   const loadModels = async () => {
+    if (!window.faceapi) {
+        setError("AI Library is still initializing. Please wait a moment and try again.");
+        setStatus('idle');
+        return;
+    }
     setStatus('loading');
     try {
       // Use the officially mirrored NPM package for models for maximum reliability
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/';
       
-      // Load only the essential models needed for gender detection
+      // Load with timeout to prevent hang
       console.log("Loading AI Models...");
-      await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
-      await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL); // Required for ageGenderNet sometimes
-      await window.faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL);
+      const loadWithTimeout = async (net, url) => {
+          return Promise.race([
+              net.loadFromUri(url),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Model load timeout')), 15000))
+          ]);
+      };
+
+      await loadWithTimeout(window.faceapi.nets.tinyFaceDetector, MODEL_URL);
+      await loadWithTimeout(window.faceapi.nets.faceLandmark68Net, MODEL_URL);
+      await loadWithTimeout(window.faceapi.nets.ageGenderNet, MODEL_URL);
       
       console.log("AI Models Loaded Successfully");
       startCamera();
@@ -38,6 +50,7 @@ const IdentityVerifier = ({ gender, onVerify }) => {
         return;
     }
     try {
+      console.log("Starting Camera...");
       const s = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: 640, height: 480 } 
       });
@@ -46,7 +59,8 @@ const IdentityVerifier = ({ gender, onVerify }) => {
       setStatus('streaming');
       setError(null);
     } catch (err) {
-      setError('Camera access denied. Please enable your camera for gender verification.');
+      console.error("Camera access Error:", err);
+      setError('Camera access denied or unavailable. Please enable your camera and refresh the page to try again.');
       setStatus('idle');
     }
   };

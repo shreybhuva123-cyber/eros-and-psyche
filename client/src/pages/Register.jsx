@@ -29,6 +29,8 @@ const Register = () => {
       setLoading(true);
       setError('');
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      console.log(`Connecting to: ${apiUrl}`);
+      
       const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,7 +42,12 @@ const Register = () => {
       // Navigate to login securely
       navigate('/login', { state: { message: `Your Login ID is: ${data.userId}. Please save it!`, userId: data.userId } });
     } catch (err) {
-      setError(err.message);
+      console.error("Registration Error Details:", err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+         setError(`Connection failed. Ensure the server is running at ${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
+      } else {
+         setError(err.message);
+      }
     } finally {
       setLoading(false);
     }

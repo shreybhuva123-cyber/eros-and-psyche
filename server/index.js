@@ -18,7 +18,7 @@ connectDB();
 
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'https://anonpair.netlify.app',
+  origin: [process.env.CLIENT_URL, 'http://localhost:5173', 'https://anonpair.netlify.app', /\.vercel\.app$/],
   credentials: true
 }));
 app.use(express.json());
@@ -36,7 +36,7 @@ app.use('/api/reports', reportRoutes);
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'https://anonpair.netlify.app',
+    origin: [process.env.CLIENT_URL, 'http://localhost:5173', 'https://anonpair.netlify.app', /\.vercel\.app$/],
     credentials: true,
     methods: ["GET", "POST"]
   }
