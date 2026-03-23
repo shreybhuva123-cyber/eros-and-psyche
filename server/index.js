@@ -44,4 +44,9 @@ const io = new Server(server, {
 require('./sockets/socketManager')(io);
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Only listen if not on Vercel or if run directly for standalone servers
+if (!process.env.VERCEL || require.main === module) {
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
