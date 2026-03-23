@@ -28,8 +28,15 @@ const Register = () => {
     try {
       setLoading(true);
       setError('');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      console.log(`Connecting to: ${apiUrl}`);
+      // If we are on production, use relative URL for proxy support. Otherwise use VITE_API_URL or localhost.
+      let apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl && window.location.hostname !== 'localhost') {
+         apiUrl = window.location.origin; // Same domain as frontend
+      } else if (!apiUrl) {
+         apiUrl = 'http://localhost:5000';
+      }
+      
+      console.log(`Connecting to: ${apiUrl}/api/auth/register`);
       
       const res = await fetch(`${apiUrl}/api/auth/register`, {
         method: 'POST',
