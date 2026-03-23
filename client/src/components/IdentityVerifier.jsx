@@ -34,22 +34,23 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     
+    // Capture IMMEDIATELY before the video element unmounts
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    
     setStatus('scanning');
     
-    // Simulate AI scanning animation for 3 seconds
+    // Simulate AI scanning animation for 2 seconds
     setTimeout(() => {
-        const canvas = canvasRef.current;
-        const video = videoRef.current;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         setPhoto(dataUrl);
         setStatus('verified');
         onVerify(dataUrl);
         stopCamera();
-    }, 3000);
+    }, 2000);
   };
 
   const reset = () => {
