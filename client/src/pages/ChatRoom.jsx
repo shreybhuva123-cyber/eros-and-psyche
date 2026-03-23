@@ -40,6 +40,7 @@ const playInteractionSound = (type) => {
 };
 
 const ChatRoom = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   const navigate = useNavigate();
   const { logout, user, token } = useAuth();
   
@@ -101,7 +102,7 @@ const ChatRoom = () => {
   useEffect(() => {
     if (!token) return;
     
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(apiUrl, {
        withCredentials: true,
        auth: { token }
     });
@@ -214,7 +215,7 @@ const ChatRoom = () => {
     socket.emit('get_partner_id_for_report', async (data) => {
        if(data && data.reportedUserId) {
          try {
-           await fetch('http://localhost:5000/api/reports/report', {
+           await fetch(`${apiUrl}/api/reports/report`, {
              method: 'POST',
              headers: { 
                  'Content-Type': 'application/json',
@@ -232,7 +233,7 @@ const ChatRoom = () => {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/api/auth/logout', { 
+      await fetch(`${apiUrl}/api/auth/logout`, { 
          method: 'POST',
          headers: { 'Authorization': `Bearer ${token}` }
       });
