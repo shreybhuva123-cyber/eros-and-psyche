@@ -6,11 +6,29 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
-  const [status, setStatus] = useState('idle'); // idle, streaming, scanning, verified
+  const [status, setStatus] = useState('idle'); // idle, loading, streaming, scanning, verified
   const [error, setError] = useState(null);
   const [photo, setPhoto] = useState(null);
 
+  const loadModels = async () => {
+    setStatus('loading');
+    try {
+      // Load models from CDN
+      const MODEL_URL = 'https://vladmandic.github.io/face-api/model/';
+      await Promise.all([
+        window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        window.faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)
+      ]);
+      startCamera();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load AI models. Please check your internet.');
+    }
+  };
+
   const startCamera = async () => {
+    if (!window.faceapi) return;
     try {
       const s = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: 640, height: 480 } 
@@ -31,10 +49,10 @@ const IdentityVerifier = ({ gender, onVerify }) => {
     }
   };
 
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const capturePhoto = async () => {
+    if (!videoRef.current || !canvasRef.current || !window.faceapi) return;
     
-    // Capture IMMEDIATELY before the video element unmounts
+    // Capture IMMEDIATELY
     const canvas = canvasRef.current;
     const video = videoRef.current;
     canvas.width = video.videoWidth || 640;
@@ -44,13 +62,45 @@ const IdentityVerifier = ({ gender, onVerify }) => {
     
     setStatus('scanning');
     
-    // Simulate AI scanning animation for 2 seconds
-    setTimeout(() => {
-        setPhoto(dataUrl);
-        setStatus('verified');
-        onVerify(dataUrl);
-        stopCamera();
-    }, 2000);
+    try {
+        // ACTUAL AI ANALYSIS
+        const detection = await window.faceapi.detectSingleFace(
+            video, 
+            new window.faceapi.TinyFaceDetectorOptions()
+        ).withFaceLandmarks().withAgeAndGender();
+
+        if (detection) {
+            const detectedGender = detection.gender; // 'male' or 'female'
+            const confidence = detection.genderProbability;
+            
+            console.log("AI Detected:", detectedGender, confidence);
+
+            const isBoyCorrect = (gender === 'Boy' && detectedGender === 'male');
+            const isGirlCorrect = (gender === 'Girl' && detectedGender === 'female');
+
+            if ((isBoyCorrect || isGirlCorrect) && confidence > 0.6) {
+                // Success!
+                setTimeout(() => {
+                    setPhoto(dataUrl);
+                    setStatus('verified');
+                    onVerify(dataUrl);
+                    stopCamera();
+                }, 1500);
+            } else {
+                setError(`AI Analysis Failed: You registered as a ${gender}, but the camera detected a different identity. Please try again.`);
+                setStatus('idle');
+                stopCamera();
+            }
+        } else {
+            setError('No face detected. Please ensure your face is clearly visible in the light.');
+            setStatus('idle');
+            stopCamera();
+        }
+    } catch (err) {
+        console.error(err);
+        setError('Error during AI analysis. Please try again.');
+        setStatus('idle');
+    }
   };
 
   const reset = () => {
@@ -68,6 +118,22 @@ const IdentityVerifier = ({ gender, onVerify }) => {
       <div className="relative aspect-video rounded-3xl overflow-hidden bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 shadow-inner flex items-center justify-center transition-colors duration-300">
         
         <AnimatePresence mode="wait">
+          {status === 'loading' && (
+             <motion.div 
+                key="loading"
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-4 p-8 text-center"
+             >
+                <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                <p className="text-sm font-bold text-slate-800 dark:text-white">
+                   Initializing AI Identity Models...
+                </p>
+                <p className="text-xs text-slate-500">Please wait, this only happens once.</p>
+             </motion.div>
+          )}
+
           {status === 'idle' && (
             <motion.div 
                key="idle"
@@ -85,7 +151,7 @@ const IdentityVerifier = ({ gender, onVerify }) => {
                <div className="flex flex-col gap-2 w-full px-4">
                  <button 
                     type="button"
-                    onClick={startCamera}
+                    onClick={loadModels}
                     className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold shadow-lg transition-all"
                  >
                     Verify Now
