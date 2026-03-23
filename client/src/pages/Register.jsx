@@ -80,12 +80,19 @@ const Register = () => {
               <button
                 key={g}
                 type="button"
-                onClick={() => setGender(g)}
+                onClick={() => {
+                   if (gender !== g) {
+                      setGender(g);
+                      setIsVerified(false);
+                      setVerificationPhoto(null);
+                      setVerificationSkipped(false);
+                   }
+                }}
                 className={clsx(
                   "w-1/2 py-3 rounded-2xl font-semibold transition-all duration-300",
                   gender === g 
-                    ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg scale-105"
-                    : "bg-white/5 text-slate-300 hover:bg-white/10"
+                    ? "bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow-lg scale-105 border-transparent"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10"
                 )}
               >
                 {g}
