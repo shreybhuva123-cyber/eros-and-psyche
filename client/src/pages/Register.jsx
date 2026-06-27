@@ -18,6 +18,7 @@ const Register = () => {
   const [verificationPhoto, setVerificationPhoto] = useState(null);
   const [isVerified, setIsVerified] = useState(false);
   const [verificationSkipped, setVerificationSkipped] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -146,26 +147,52 @@ const Register = () => {
             </label>
           </div>
           
-          <div className="bg-indigo-500/10 border border-indigo-500/30 p-4 rounded-2xl flex items-start space-x-3 mb-6 transition-colors duration-500">
-             <ShieldAlert className="text-yellow-600 dark:text-yellow-500 mt-1 flex-shrink-0" size={18} />
-             <p className="text-xs text-yellow-700 dark:text-yellow-200/80 leading-relaxed">
-               Identity Verification (Optional). Scan for a <span className="text-cyan-400 font-bold italic underline decoration-cyan-400/30">Verified Badge</span>.
-             </p>
-          </div>
-
-          <IdentityVerifier 
-            gender={gender} 
-            onVerify={(photoData) => {
-               if (photoData) {
-                  setVerificationPhoto(photoData);
-                  setIsVerified(true);
-                  setVerificationSkipped(false);
-               } else {
-                  setVerificationSkipped(true);
-                  setIsVerified(false);
-               }
-            }} 
-          />
+          {!showScanner ? (
+            <div className="bg-indigo-500/10 border border-indigo-500/30 p-4 rounded-2xl flex flex-col items-center space-y-3 mb-6 transition-colors duration-500">
+               <div className="flex items-start space-x-3 w-full">
+                 <ShieldAlert className="text-yellow-600 dark:text-yellow-500 mt-1 flex-shrink-0" size={18} />
+                 <p className="text-xs text-yellow-700 dark:text-yellow-200/80 leading-relaxed text-left">
+                   Identity Verification is <span className="font-bold uppercase tracking-wider">completely optional</span>. You can register right now without it!
+                 </p>
+               </div>
+               <button
+                 type="button"
+                 onClick={() => setShowScanner(true)}
+                 className="w-full py-2 px-4 bg-white/5 hover:bg-white/10 border border-indigo-500/50 rounded-xl text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-widest transition-colors flex justify-center items-center gap-2"
+               >
+                 <Sparkles size={14} className="text-cyan-400" />
+                 Scan Face for Verified Badge
+               </button>
+            </div>
+          ) : (
+            <div className="mb-6 space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Optional Verification</span>
+                <button 
+                  type="button" 
+                  onClick={() => setShowScanner(false)}
+                  className="text-[10px] font-bold uppercase tracking-wider text-slate-500 hover:text-rose-500 transition-colors"
+                >
+                  Close Scanner
+                </button>
+              </div>
+              <IdentityVerifier 
+                gender={gender} 
+                onVerify={(photoData) => {
+                   if (photoData) {
+                      setVerificationPhoto(photoData);
+                      setIsVerified(true);
+                      setVerificationSkipped(false);
+                      setShowScanner(false); // Hide scanner on success
+                   } else {
+                      setVerificationSkipped(true);
+                      setIsVerified(false);
+                      setShowScanner(false); // Hide scanner on skip
+                   }
+                }} 
+              />
+            </div>
+          )}
 
           <motion.button 
             whileHover={(isVerified || verificationSkipped) ? { scale: 1.02 } : {}}
