@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const { prisma } = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -23,20 +23,21 @@ exports.register = async (req, res) => {
     }
     
     let userId = generateUserId(gender);
-    while (await User.findOne({ userId })) {
+    while (await prisma.user.findUnique({ where: { userId } })) {
       userId = generateUserId(gender);
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-      userId,
-      gender,
-      password: hashedPassword,
-      verificationPhoto: verificationPhoto,
-      isVerified: !!verificationPhoto // Only verified if they provided a scan photo
+    const user = await prisma.user.create({
+      data: {
+        userId,
+        gender,
+        password: hashedPassword,
+        verificationPhoto: verificationPhoto || null,
+        isVerified: !!verificationPhoto
+      }
     });
     
-    await user.save();
     res.status(201).json({ message: 'User registered successfully', userId });
   } catch (err) {
     res.status(500).json({ error: 'Server error during registration' });
@@ -47,14 +48,14 @@ exports.login = async (req, res) => {
   try {
     const { userId, password } = req.body;
     
-    const user = await User.findOne({ userId });
+    const user = await prisma.user.findUnique({ where: { userId } });
     if (!user) return res.status(400).json({ error: 'Invalid credentials' });
     if (user.isBanned) return res.status(403).json({ error: 'Your account has been banned due to multiple reports.' });
     
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
     
-    const token = jwt.sign({ userId: user.userId, gender: user.gender, _id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ userId: user.userId, gender: user.gender, id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     
     res.cookie('token', token, {
       httpOnly: true,
@@ -76,9 +77,14 @@ exports.logout = (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
     if (!user) return res.status(404).json({ error: 'User not found' });
-    res.status(200).json(user);
+    
+    // Remove password before sending
+    const { password, ...userWithoutPassword } = user;
+    res.status(200).json(userWithoutPassword);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

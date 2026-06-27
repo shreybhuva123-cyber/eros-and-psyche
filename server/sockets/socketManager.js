@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { prisma } = require('../config/db');
 
 const boysQueue = [];
 const girlsQueue = [];
@@ -35,7 +35,7 @@ module.exports = (io) => {
 
   io.on('connection', async (socket) => {
     try {
-      const user = await User.findById(socket.user._id);
+      const user = await prisma.user.findUnique({ where: { id: socket.user.id } });
       if (!user || user.isBanned) {
         return socket.disconnect();
       }

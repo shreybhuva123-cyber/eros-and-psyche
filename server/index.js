@@ -4,7 +4,7 @@ const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
-const connectDB = require('./config/db');
+const { connectDB } = require('./config/db');
 const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
 

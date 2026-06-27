@@ -1,5 +1,4 @@
-const Report = require('../models/Report');
-const User = require('../models/User');
+const { prisma } = require('../config/db');
 
 exports.reportUser = async (req, res) => {
   try {
@@ -10,26 +9,29 @@ exports.reportUser = async (req, res) => {
       return res.status(400).json({ error: 'You cannot report yourself' });
     }
 
-    const newReport = new Report({
-      reporterId,
-      reportedUserId,
-      sessionId
+    await prisma.report.create({
+      data: {
+        reporterId,
+        reportedUserId,
+        sessionId
+      }
     });
 
-    await newReport.save();
-
-    const reportedUser = await User.findOne({ userId: reportedUserId });
+    const reportedUser = await prisma.user.findUnique({ where: { userId: reportedUserId } });
     if (reportedUser) {
-      reportedUser.reportCount += 1;
-      if (reportedUser.reportCount >= 5) {
-        reportedUser.isBanned = true;
-      }
-      await reportedUser.save();
+      const newReportCount = reportedUser.reportCount + 1;
+      await prisma.user.update({
+        where: { userId: reportedUserId },
+        data: {
+          reportCount: newReportCount,
+          isBanned: newReportCount >= 5
+        }
+      });
     }
 
     res.status(200).json({ message: 'User reported successfully' });
   } catch (err) {
-    if (err.code === 11000) {
+    if (err.code === 'P2002') {
       return res.status(400).json({ error: 'You have already reported this user' });
     }
     res.status(500).json({ error: 'Server error' });
@@ -41,10 +43,16 @@ exports.blockUser = async (req, res) => {
     const { blockedUserId } = req.body;
     const reporterId = req.user.userId;
 
-    const user = await User.findOne({ userId: reporterId });
+    const user = await prisma.user.findUnique({ where: { userId: reporterId } });
     if (user && !user.blockedUsers.includes(blockedUserId)) {
-      user.blockedUsers.push(blockedUserId);
-      await user.save();
+      await prisma.user.update({
+        where: { userId: reporterId },
+        data: {
+          blockedUsers: {
+            push: blockedUserId
+          }
+        }
+      });
     }
     
     res.status(200).json({ message: 'User blocked successfully' });
