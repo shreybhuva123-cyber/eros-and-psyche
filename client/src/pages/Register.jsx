@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import { Eye, EyeOff, ShieldAlert, Sparkles } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import clsx from 'clsx';
 import ShreyMascot from '../components/ShreyMascot';
