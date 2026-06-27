@@ -31,13 +31,12 @@ const Register = () => {
       setError('');
       // If we are on production, use relative URL for proxy support. Otherwise use VITE_API_URL or localhost.
       let apiUrl = import.meta.env.VITE_API_URL;
-      if (apiUrl && apiUrl.endsWith('/')) {
-         apiUrl = apiUrl.slice(0, -1);
-      }
       
-      if (!apiUrl && window.location.hostname !== 'localhost') {
-         apiUrl = window.location.origin; // Same domain as frontend
-      } else if (!apiUrl) {
+      if (window.location.hostname !== 'localhost') {
+         apiUrl = ''; // On Vercel, API is on the same domain, so use relative path
+      } else if (apiUrl) {
+         if (apiUrl.endsWith('/')) apiUrl = apiUrl.slice(0, -1);
+      } else {
          apiUrl = 'http://localhost:5000';
       }
       

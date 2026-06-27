@@ -66,6 +66,10 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   };
 
   const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
@@ -86,11 +90,16 @@ const IdentityVerifier = ({ gender, onVerify }) => {
     setStatus('scanning');
     
     try {
-        // REAL-TIME AI ANALYSIS WHILE VIDEO RUNS
-        const detection = await window.faceapi.detectSingleFace(
+        // Timeout the detection after 10 seconds to prevent hanging
+        const detectionPromise = window.faceapi.detectSingleFace(
             video, 
             new window.faceapi.TinyFaceDetectorOptions()
         ).withFaceLandmarks().withAgeAndGender();
+
+        const detection = await Promise.race([
+            detectionPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Scan timed out. Please try again.')), 10000))
+        ]);
 
         if (detection) {
             const detectedGender = detection.gender;

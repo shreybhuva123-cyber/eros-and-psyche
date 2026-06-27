@@ -24,7 +24,14 @@ const Login = () => {
     try {
       setLoading(true);
       setError('');
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      let apiUrl = import.meta.env.VITE_API_URL;
+      if (window.location.hostname !== 'localhost') {
+         apiUrl = ''; // On Vercel, API is on the same domain
+      } else if (apiUrl) {
+         if (apiUrl.endsWith('/')) apiUrl = apiUrl.slice(0, -1);
+      } else {
+         apiUrl = 'http://localhost:5000';
+      }
       const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
