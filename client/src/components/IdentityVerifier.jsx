@@ -10,6 +10,7 @@ const IdentityVerifier = ({ gender, onVerify }) => {
   const [status, setStatus] = useState('idle'); // idle, loading, streaming, scanning, verified
   const [error, setError] = useState(null);
   const [photo, setPhoto] = useState(null);
+  const streamRef = useRef(null);
 
   const loadModels = async () => {
     if (!window.faceapi) {
@@ -55,6 +56,7 @@ const IdentityVerifier = ({ gender, onVerify }) => {
         video: { facingMode: 'user', width: 640, height: 480 } 
       });
       setStream(s);
+      streamRef.current = s;
       if (videoRef.current) videoRef.current.srcObject = s;
       setStatus('streaming');
       setError(null);
@@ -69,6 +71,10 @@ const IdentityVerifier = ({ gender, onVerify }) => {
     if (videoRef.current && videoRef.current.srcObject) {
       videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
     if (stream) {
       stream.getTracks().forEach(track => track.stop());

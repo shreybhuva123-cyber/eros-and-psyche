@@ -1,23 +1,21 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server/index.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server/index.js"
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/client/dist/assets/$1"
+    },
+    {
+      "source": "/vite.svg",
+      "destination": "/client/dist/vite.svg"
     },
     {
       "source": "/(.*)",
-      "destination": "/client/dist/$1"
+      "destination": "/client/dist/index.html"
     }
   ]
 }

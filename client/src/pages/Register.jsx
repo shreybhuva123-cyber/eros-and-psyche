@@ -47,7 +47,13 @@ const Register = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gender, password, isAgeConfirmed, verificationPhoto, isVerified })
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(`Server returned unexpected response (${res.status}): ${text.substring(0, 50)}`);
+      }
       if (!res.ok) throw new Error(data.error || 'Registration failed');
       
       // Navigate to login securely
@@ -55,7 +61,7 @@ const Register = () => {
     } catch (err) {
       console.error("Registration Error Details:", err);
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-         setError(`Connection failed. Ensure the server is running at ${import.meta.env.VITE_API_URL || 'http://localhost:5000'}`);
+         setError(`Network error: Could not reach the API. Please try again.`);
       } else {
          setError(err.message);
       }
